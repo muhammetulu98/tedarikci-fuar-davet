@@ -14,7 +14,7 @@ interface Detay {
   sevkiyat: Sevk[]
   vadeTip: 'gun' | 'tarih'; vadeGun: number; vadeTarih: string
   alisIsk: number[]; satisIsk: number; hedef: number
-  personelPrim: Prim; ciroPrim: Prim; katilimPrim: Prim
+  personelPrim: Prim; seneSonuPrim: Prim; bozukIade: number; ciroPrim: Prim; katilimPrim: Prim
   altinlar: Altin[]
   odalar: Oda[]
   duvarMt: number; masaSayisi: number; rafMt: number
@@ -28,6 +28,8 @@ const bos = (): Detay => ({
   sevkiyat: [{ birim: 'Palet', tutar: 0, alt: 0, teslim: 'timon', nakliye: 'haric' }],
   vadeTip: 'gun', vadeGun: 90, vadeTarih: '', alisIsk: [0, 0, 0, 0], satisIsk: 0, hedef: 0,
   personelPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
+  seneSonuPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
+  bozukIade: 0,
   ciroPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
   katilimPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
   altinlar: [],
@@ -178,8 +180,8 @@ function kaydet(gonder = false) {
   edit.value = null
   toast(gonder ? 'Yönetim onayına gönderildi' : 'Kaydedildi')
 }
-const addBarem = (k: 'personelPrim' | 'ciroPrim' | 'katilimPrim') => form[k].baremler.push({ alt: form[k].baremler.at(-1)?.ust ?? 0, ust: 0, prim: 0 })
-const delBarem = (k: 'personelPrim' | 'ciroPrim' | 'katilimPrim', i: number) => { if (form[k].baremler.length > 1) form[k].baremler.splice(i, 1) }
+const addBarem = (k: 'personelPrim' | 'seneSonuPrim' | 'ciroPrim' | 'katilimPrim') => form[k].baremler.push({ alt: form[k].baremler.at(-1)?.ust ?? 0, ust: 0, prim: 0 })
+const delBarem = (k: 'personelPrim' | 'seneSonuPrim' | 'ciroPrim' | 'katilimPrim', i: number) => { if (form[k].baremler.length > 1) form[k].baremler.splice(i, 1) }
 const gece = (o: Oda) => (o.giris && o.cikis ? Math.max(0, Math.round((+new Date(o.cikis) - +new Date(o.giris)) / 864e5)) : 0)
 const odaTutar = (o: Oda) => (odaFiyat[o.tip] ?? 0) * gece(o)
 const konaklamaEur = computed(() => form.odalar.reduce((t, o) => t + odaTutar(o), 0))
@@ -324,7 +326,7 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <button class="iconbtn" @click="edit = null">✕</button>
         </header>
         <div class="body">
-          <div class="sec">1 · Vade</div>
+          <div class="sec s1">1 · Alış Şartları</div>
           <div class="g2">
             <div class="field full"><label>Fuar Alış Vadesi</label>
               <div style="display:flex;gap:14px;align-items:center">
@@ -337,7 +339,6 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
               <input v-model="form.vadeAciklama" class="inp" maxlength="120" placeholder="Kısa açıklama (ör. fuar sonrası 30 gün, aylık kapanış…)" :disabled="kilitli"></div>
           </div>
 
-          <div class="sec">2 · Fuar Alış İskontoları</div>
           <div class="g4">
             <div v-for="(_, i) in form.alisIsk" :key="i" class="field"><label>İskonto {{ i + 1 }}</label>
               <div class="suffix"><input v-model.number="form.alisIsk[i]" class="inp" type="number" step="0.1" :disabled="kilitli"><span>%</span></div></div>
@@ -355,7 +356,7 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           </div>
           <button v-if="!kilitli" class="btn" style="margin-bottom:14px" @click="addSevk">+ Sevkiyat Baremi Ekle</button>
 
-          <div class="sec">3 · Satış İskontosu ve Hedef</div>
+          <div class="sec s2">2 · Satış İskontosu ve Hedef</div>
           <div class="g2" style="grid-template-columns:110px 110px 1fr">
             <div class="field"><label>Fuar Satış İskontosu</label>
               <div class="suffix"><input v-model.number="form.satisIsk" class="inp" type="number" step="0.1" :disabled="kilitli"><span>%</span></div></div>
@@ -367,11 +368,11 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
               <div class="suffix"><MoneyInput v-model="form.hedef" class="inp" :disabled="kilitli" /><span>₺</span></div></div>
           </div>
 
-          <div class="sec">4 · Primler (Baremli)</div>
-          <div v-for="pr in [{ k: 'personelPrim', t: 'Personel Primi' }, { k: 'ciroPrim', t: 'Ciro Primi' }] as const" :key="pr.k" style="margin-bottom:14px">
+          <div class="sec s3">3 · Primler (Baremli)</div>
+          <div v-for="pr in [{ k: 'personelPrim', t: 'Personel Primi', zorunlu: false }, { k: 'seneSonuPrim', t: 'Sene Sonu Primi', zorunlu: false }, { k: 'ciroPrim', t: 'Ciro Primi', zorunlu: false }] as const" :key="pr.k" style="margin-bottom:14px">
             <div class="field" style="margin-bottom:6px"><label>{{ pr.t }}</label></div>
-            <label class="chk" style="margin-bottom:8px"><input v-model="form[pr.k].baremli" type="checkbox" :disabled="kilitli"> Baremli</label>
-            <div v-if="!form[pr.k].baremli" class="field" style="max-width:200px">
+            <label v-if="!pr.zorunlu" class="chk" style="margin-bottom:8px"><input v-model="form[pr.k].baremli" type="checkbox" :disabled="kilitli"> Baremli</label>
+            <div v-if="!pr.zorunlu && !form[pr.k].baremli" class="field" style="max-width:200px">
               <div class="suffix"><input v-model.number="form[pr.k].sabit" class="inp" type="number" step="0.1" placeholder="Prim oranı" :disabled="kilitli"><span>%</span></div></div>
             <template v-else>
             <div v-for="(b, i) in form[pr.k].baremler" :key="i" class="barem">
@@ -384,6 +385,9 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
             </template>
           </div>
 
+          <div class="field" style="margin-bottom:14px;max-width:200px"><label>Bozuk İade Bütçesi <small style="color:var(--faint)">(baremsiz)</small></label>
+            <div class="suffix"><input v-model.number="form.bozukIade" class="inp" type="number" step="0.01" :disabled="kilitli"><span>%</span></div></div>
+
           <div class="field" style="margin-bottom:6px"><label>Ciro Hedefine Göre Altın Ödülü</label></div>
           <div v-for="(a, i) in form.altinlar" :key="i" class="altin">
             <div class="suffix"><MoneyInput v-model="a.ciro" class="inp" placeholder="Ciro" :disabled="kilitli" /><span>₺</span></div>
@@ -393,14 +397,14 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           </div>
           <button v-if="!kilitli" class="btn" style="margin-bottom:14px" @click="addAltin">+ Altın Ödülü Ekle</button>
 
-          <div class="sec">5 · Tedarikci Sipariş Sorumlusu</div>
+          <div class="sec s4">4 · Tedarikci Sipariş Sorumlusu</div>
           <div class="g3">
             <div class="field"><label>Ad Soyad</label><input v-model="form.siparisSorumlu.ad" class="inp" :disabled="kilitli"></div>
             <div class="field"><label>E-posta</label><input v-model="form.siparisSorumlu.mail" class="inp" type="email" :disabled="kilitli"></div>
             <div class="field"><label>Telefon</label><input v-model="form.siparisSorumlu.tel" class="inp" :disabled="kilitli"></div>
           </div>
 
-          <div class="sec">6 · Konaklama</div>
+          <div class="sec s5">5 · Konaklama</div>
           <div v-for="(o, oi) in form.odalar" :key="oi" class="oda">
             <div class="oda-h"><b>Oda {{ oi + 1 }}</b>
               <button class="iconbtn" :disabled="kilitli" @click="delOda(oi)">✕ Odayı Sil</button></div>
@@ -421,7 +425,7 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           </div>
           <button v-if="!kilitli" class="btn" style="margin-bottom:14px" @click="addOda">{{ form.odalar.length ? '+ Bir Oda Daha Ekle' : '+ Oda Ekle' }}</button>
 
-          <div class="sec">7 · Alan Bilgileri</div>
+          <div class="sec s6">6 · Alan Bilgileri</div>
           <div class="g3">
             <div class="field"><label>Duvar</label><div class="suffix"><input v-model.number="form.duvarMt" class="inp" type="number" :disabled="kilitli"><span>mt</span></div></div>
             <div class="field"><label>Masa Sayısı</label><div class="suffix"><input v-model.number="form.masaSayisi" class="inp" type="number" :disabled="kilitli"><span>adet</span></div></div>
@@ -475,18 +479,18 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <button class="iconbtn" @click="giderOpen = false">✕</button>
         </header>
         <div class="body">
-          <div class="sec">1 · Oda Fiyatları <small style="text-transform:none;letter-spacing:0">(gecelik, €)</small></div>
+          <div class="sec s1">1 · Oda Fiyatları <small style="text-transform:none;letter-spacing:0">(gecelik, €)</small></div>
           <div class="g2">
             <div v-for="(_, t) in gider.oda" :key="t" class="field"><label>{{ t }}</label>
               <div class="suffix"><MoneyInput v-model="gider.oda[t]" class="inp" /><span>€</span></div></div>
           </div>
-          <div class="sec">2 · Duvar</div>
+          <div class="sec s2">2 · Duvar</div>
           <div class="g2"><div class="field"><label>Duvar Metretül Fiyatı</label>
             <div class="suffix"><MoneyInput v-model="gider.duvar" class="inp" /><span>₺</span></div></div></div>
-          <div class="sec">3 · Raf</div>
+          <div class="sec s3">3 · Raf</div>
           <div class="g2"><div class="field"><label>Raf Metretül Fiyatı</label>
             <div class="suffix"><MoneyInput v-model="gider.raf" class="inp" /><span>₺</span></div></div></div>
-          <div class="sec">4 · Masa</div>
+          <div class="sec s4">4 · Masa</div>
           <div class="g2"><div class="field"><label>Masa Fiyatı</label>
             <div class="suffix"><MoneyInput v-model="gider.masa" class="inp" /><span>₺</span></div></div></div>
         </div>

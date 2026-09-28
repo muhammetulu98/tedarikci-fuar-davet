@@ -171,3 +171,13 @@ tr:hover td { filter: brightness(.985); }
 .iconbtn.del:hover { color: var(--red); }
 .oda-fiyat { font-size: 11px; color: var(--muted); margin: -2px 0 10px; } .oda-fiyat b { color: var(--text); }
 .altin { display: grid; grid-template-columns: 1.3fr 70px 1.2fr 28px; gap: 8px; margin-bottom: 6px; } .altin .inp { width: 100%; min-width: 0; }
+
+/* numaralı bölüm başlıkları */
+.sec[class*=" s"] { padding-left: 8px; border-left: 3px solid var(--c); border-bottom-color: var(--c); color: var(--c); background: color-mix(in srgb, var(--c) 7%, transparent); }
+.sec.s1 { --c: #2563eb; }
+.sec.s2 { --c: #16a34a; }
+.sec.s3 { --c: #ea7a12; }
+.sec.s4 { --c: #7c3aed; }
+.sec.s5 { --c: #0891b2; }
+.sec.s6 { --c: #db2777; }
+.sec.s7 { --c: #ca8a04; }
