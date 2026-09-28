@@ -1,5 +1,6 @@
 <script setup lang="ts">
 type Status = 'aday' | 'gm' | 'ust' | 'ok' | 'red'
+interface Sevk { birim: 'Baremsiz' | 'Koli' | 'Palet'; tutar: number; alt: number; teslim: 'timon' | 'yerinden'; nakliye: 'haric' | 'dahil' }
 interface Barem { alt: number; ust: number; prim: number }
 interface Prim { baremli: boolean; sabit: number; baremler: Barem[] }
 interface Altin { ciro: number; adet: number; tur: string }
@@ -10,10 +11,10 @@ interface Detay {
   iskGrubu: string
   eurKuru: number
   siparisSorumlu: { ad: string; mail: string; tel: string }
-  nakliye: 'dahil' | 'haric'; nakliyeSekli: 'yerinden' | 'timon'
+  sevkiyat: Sevk[]
   vadeTip: 'gun' | 'tarih'; vadeGun: number; vadeTarih: string
   alisIsk: number[]; satisIsk: number; hedef: number
-  personelPrim: Prim; ciroPrim: Prim; pazarlamaPrim: Prim; katilimPrim: Prim
+  personelPrim: Prim; ciroPrim: Prim; katilimPrim: Prim
   altinlar: Altin[]
   odalar: Oda[]
   duvarMt: number; masaSayisi: number; rafMt: number
@@ -22,13 +23,12 @@ interface Detay {
 const bos = (): Detay => ({
   vadeAciklama: '',
   iskGrubu: '',
-  eurKuru: 50,
+  eurKuru: 55,
   siparisSorumlu: { ad: '', mail: '', tel: '' },
-  nakliye: 'haric', nakliyeSekli: 'yerinden',
+  sevkiyat: [{ birim: 'Palet', tutar: 0, alt: 0, teslim: 'timon', nakliye: 'haric' }],
   vadeTip: 'gun', vadeGun: 90, vadeTarih: '', alisIsk: [0, 0, 0, 0], satisIsk: 0, hedef: 0,
   personelPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
   ciroPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
-  pazarlamaPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
   katilimPrim: { baremli: false, sabit: 0, baremler: [{ alt: 0, ust: 0, prim: 0 }] },
   altinlar: [],
   odalar: [], duvarMt: 0, masaSayisi: 0, rafMt: 0,
@@ -178,19 +178,25 @@ function kaydet(gonder = false) {
   edit.value = null
   toast(gonder ? 'Yönetim onayına gönderildi' : 'Kaydedildi')
 }
-const addBarem = (k: 'personelPrim' | 'ciroPrim' | 'pazarlamaPrim' | 'katilimPrim') => form[k].baremler.push({ alt: form[k].baremler.at(-1)?.ust ?? 0, ust: 0, prim: 0 })
-const delBarem = (k: 'personelPrim' | 'ciroPrim' | 'pazarlamaPrim' | 'katilimPrim', i: number) => { if (form[k].baremler.length > 1) form[k].baremler.splice(i, 1) }
+const addBarem = (k: 'personelPrim' | 'ciroPrim' | 'katilimPrim') => form[k].baremler.push({ alt: form[k].baremler.at(-1)?.ust ?? 0, ust: 0, prim: 0 })
+const delBarem = (k: 'personelPrim' | 'ciroPrim' | 'katilimPrim', i: number) => { if (form[k].baremler.length > 1) form[k].baremler.splice(i, 1) }
 const gece = (o: Oda) => (o.giris && o.cikis ? Math.max(0, Math.round((+new Date(o.cikis) - +new Date(o.giris)) / 864e5)) : 0)
 const odaTutar = (o: Oda) => (odaFiyat[o.tip] ?? 0) * gece(o)
 const konaklamaEur = computed(() => form.odalar.reduce((t, o) => t + odaTutar(o), 0))
 const katilimTl = computed(() => (form.krediKarti || 0) + (form.faturaKatilim || 0))
 const konaklamaTl = computed(() => konaklamaEur.value * (form.eurKuru || 0))
-const alanTl = computed(() => (form.duvarMt || 0) * gider.duvar + (form.rafMt || 0) * gider.raf + (form.masaSayisi || 0) * gider.masa)
-const masraf = computed(() => katilimTl.value + konaklamaTl.value + alanTl.value)
-const masrafTon = computed(() => (masraf.value > 0 || konaklamaEur.value > 0 ? 'ok' : 'nt'))
+const duvarTl = computed(() => (form.duvarMt || 0) * gider.duvar)
+const rafTl = computed(() => (form.rafMt || 0) * gider.raf)
+const masaTl = computed(() => (form.masaSayisi || 0) * gider.masa)
+const alanTl = computed(() => duvarTl.value + rafTl.value + masaTl.value)
+const primTutar = computed(() => ((edit.value?.gerceklesen ?? 0) * (form.katilimPrim.sabit || 0)) / 100)
+const masraf = computed(() => konaklamaTl.value + alanTl.value - katilimTl.value - primTutar.value)
+const masrafTon = computed(() => (konaklamaTl.value + alanTl.value + katilimTl.value + primTutar.value === 0 ? 'nt' : masraf.value > 0 ? 'wr' : 'ok'))
 const eur = (n: number) => '€' + n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const altinTurleri = ['Gram Altın', 'Çeyrek Altın', 'Yarım Altın', 'Tam Altın']
 const addAltin = () => form.altinlar.push({ ciro: form.altinlar.at(-1)?.ciro ?? 0, adet: 1, tur: 'Gram Altın' })
+const addSevk = () => form.sevkiyat.push({ birim: 'Palet', tutar: 0, alt: 0, teslim: 'timon', nakliye: 'haric' })
+const delSevk = (i: number) => { if (form.sevkiyat.length > 1) form.sevkiyat.splice(i, 1) }
 const yeniKisi = (): Kisi => ({ ad: '', tc: '', dogum: '' })
 const addOda = () => form.odalar.push({ tip: '', giris: '', cikis: '', kisiler: [yeniKisi()] })
 const delOda = (i: number) => form.odalar.splice(i, 1)
@@ -332,44 +338,45 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           </div>
 
           <div class="sec">2 · Fuar Alış İskontoları</div>
-          <div class="field" style="margin-bottom:12px;max-width:180px"><label>İskonto Grubu</label>
-            <select v-model="form.iskGrubu" class="inp" :disabled="kilitli">
-              <option value="">Seçin</option><option>A0</option><option>A1</option><option>A2</option>
-            </select></div>
           <div class="g4">
             <div v-for="(_, i) in form.alisIsk" :key="i" class="field"><label>İskonto {{ i + 1 }}</label>
               <div class="suffix"><input v-model.number="form.alisIsk[i]" class="inp" type="number" step="0.1" :disabled="kilitli"><span>%</span></div></div>
           </div>
 
-          <div class="g2">
-            <div class="field"><label>Nakliye</label>
-              <select v-model="form.nakliye" class="inp" :disabled="kilitli">
-                <option value="haric">Nakliye Hariç</option><option value="dahil">Nakliye Dahil</option>
-              </select></div>
-            <div class="field"><label>Nakliye Şekli</label>
-              <select v-model="form.nakliyeSekli" class="inp" :disabled="kilitli">
-                <option value="yerinden">Yerinden</option><option value="timon">Timon Depo</option>
-              </select></div>
+          <div class="field" style="margin-bottom:6px"><label>Sevkiyat Baremleri</label></div>
+          <div class="sevk sevk-h"><span>Baremli</span><span>Alt sınır</span><span>Teslim yeri</span><span>Nakliye</span><span /></div>
+          <div v-for="(v, i) in form.sevkiyat" :key="i" class="sevk">
+            <select v-model="v.birim" class="inp" :disabled="kilitli"><option>Baremsiz</option><option>Koli</option><option>Palet</option></select>
+            <div v-if="v.birim === 'Baremsiz'" class="suffix"><MoneyInput v-model="v.tutar" class="inp" placeholder="Tutar" :disabled="kilitli" /><span>₺</span></div>
+            <input v-else v-model.number="v.alt" class="inp" type="number" placeholder="Alt sınır" :disabled="kilitli">
+            <select v-model="v.teslim" class="inp" :disabled="kilitli"><option value="timon">Timon Depo</option><option value="yerinden">Yerinden</option></select>
+            <select v-model="v.nakliye" class="inp" :disabled="kilitli"><option value="haric">Nakliye Hariç</option><option value="dahil">Nakliye Dahil</option></select>
+            <button class="iconbtn" :disabled="kilitli" @click="delSevk(i)">✕</button>
           </div>
+          <button v-if="!kilitli" class="btn" style="margin-bottom:14px" @click="addSevk">+ Sevkiyat Baremi Ekle</button>
 
           <div class="sec">3 · Satış İskontosu ve Hedef</div>
-          <div class="g2" style="grid-template-columns:110px 1fr">
+          <div class="g2" style="grid-template-columns:110px 110px 1fr">
             <div class="field"><label>Fuar Satış İskontosu</label>
               <div class="suffix"><input v-model.number="form.satisIsk" class="inp" type="number" step="0.1" :disabled="kilitli"><span>%</span></div></div>
+            <div class="field"><label>İskonto Grubu</label>
+              <select v-model="form.iskGrubu" class="inp" :disabled="kilitli">
+                <option value="">Seçin</option><option>A0</option><option>A1</option><option>A2</option>
+              </select></div>
             <div class="field"><label>Hedef Satış Cirosu</label>
-              <div class="suffix"><input v-model.number="form.hedef" class="inp" type="number" :disabled="kilitli"><span>₺</span></div></div>
+              <div class="suffix"><MoneyInput v-model="form.hedef" class="inp" :disabled="kilitli" /><span>₺</span></div></div>
           </div>
 
           <div class="sec">4 · Primler (Baremli)</div>
-          <div v-for="pr in [{ k: 'personelPrim', t: 'Personel Primi' }, { k: 'ciroPrim', t: 'Ciro Primi' }, { k: 'pazarlamaPrim', t: 'Pazarlama Primi' }] as const" :key="pr.k" style="margin-bottom:14px">
+          <div v-for="pr in [{ k: 'personelPrim', t: 'Personel Primi' }, { k: 'ciroPrim', t: 'Ciro Primi' }] as const" :key="pr.k" style="margin-bottom:14px">
             <div class="field" style="margin-bottom:6px"><label>{{ pr.t }}</label></div>
             <label class="chk" style="margin-bottom:8px"><input v-model="form[pr.k].baremli" type="checkbox" :disabled="kilitli"> Baremli</label>
             <div v-if="!form[pr.k].baremli" class="field" style="max-width:200px">
               <div class="suffix"><input v-model.number="form[pr.k].sabit" class="inp" type="number" step="0.1" placeholder="Prim oranı" :disabled="kilitli"><span>%</span></div></div>
             <template v-else>
             <div v-for="(b, i) in form[pr.k].baremler" :key="i" class="barem">
-              <div class="suffix"><input v-model.number="b.alt" class="inp" type="number" placeholder="Alt sınır" :disabled="kilitli"><span>₺</span></div>
-              <div class="suffix"><input v-model.number="b.ust" class="inp" type="number" placeholder="Üst sınır" :disabled="kilitli"><span>₺</span></div>
+              <div class="suffix"><MoneyInput v-model="b.alt" class="inp" placeholder="Alt sınır" :disabled="kilitli" /><span>₺</span></div>
+              <div class="suffix"><MoneyInput v-model="b.ust" class="inp" placeholder="Üst sınır" :disabled="kilitli" /><span>₺</span></div>
               <div class="suffix"><input v-model.number="b.prim" class="inp" type="number" step="0.1" placeholder="Prim" :disabled="kilitli"><span>%</span></div>
               <button class="iconbtn" :disabled="kilitli" @click="delBarem(pr.k, i)">✕</button>
             </div>
@@ -379,14 +386,14 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
 
           <div class="field" style="margin-bottom:6px"><label>Ciro Hedefine Göre Altın Ödülü</label></div>
           <div v-for="(a, i) in form.altinlar" :key="i" class="altin">
-            <div class="suffix"><input v-model.number="a.ciro" class="inp" type="number" placeholder="Ciro" :disabled="kilitli"><span>₺</span></div>
+            <div class="suffix"><MoneyInput v-model="a.ciro" class="inp" placeholder="Ciro" :disabled="kilitli" /><span>₺</span></div>
             <input v-model.number="a.adet" class="inp" type="number" min="1" placeholder="Adet" :disabled="kilitli">
             <select v-model="a.tur" class="inp" :disabled="kilitli"><option v-for="t in altinTurleri" :key="t">{{ t }}</option></select>
             <button class="iconbtn" :disabled="kilitli" @click="form.altinlar.splice(i, 1)">✕</button>
           </div>
           <button v-if="!kilitli" class="btn" style="margin-bottom:14px" @click="addAltin">+ Altın Ödülü Ekle</button>
 
-          <div class="sec">5 · Sipariş Sorumlusu</div>
+          <div class="sec">5 · Tedarikci Sipariş Sorumlusu</div>
           <div class="g3">
             <div class="field"><label>Ad Soyad</label><input v-model="form.siparisSorumlu.ad" class="inp" :disabled="kilitli"></div>
             <div class="field"><label>E-posta</label><input v-model="form.siparisSorumlu.mail" class="inp" type="email" :disabled="kilitli"></div>
@@ -423,8 +430,8 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
 
           <div class="sec">Diğer</div>
           <div class="g2">
-            <div class="field"><label>Fuar Kredi Kartı Katılım Bedeli</label><div class="suffix"><input v-model.number="form.krediKarti" class="inp" type="number" :disabled="kilitli"><span>₺</span></div></div>
-            <div class="field"><label>Fuar Fatura Katılım Bedeli</label><div class="suffix"><input v-model.number="form.faturaKatilim" class="inp" type="number" :disabled="kilitli"><span>₺</span></div></div>
+            <div class="field"><label>Fuar Kredi Kartı Katılım Bedeli</label><div class="suffix"><MoneyInput v-model="form.krediKarti" class="inp" :disabled="kilitli" /><span>₺</span></div></div>
+            <div class="field"><label>Fuar Fatura Katılım Bedeli</label><div class="suffix"><MoneyInput v-model="form.faturaKatilim" class="inp" :disabled="kilitli" /><span>₺</span></div></div>
             <div class="field full"><label>Gerçekleşen Ciro <small style="color:var(--faint)">(otomatik · ERP’den gelir, manuel giriş yok)</small></label>
               <div class="suffix"><input class="inp" :value="fmt(edit.gerceklesen).replace('₺', '')" readonly disabled style="background:#f6f6f8"><span>₺</span></div></div>
             <div class="field"><label>Cirodan Fuar Katılım Primi</label><div class="suffix"><input v-model.number="form.katilimPrim.sabit" class="inp" type="number" step="0.1" :disabled="kilitli"><span>%</span></div></div>
@@ -435,7 +442,11 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <div class="masraf" :class="masrafTon">
             <div>
               <span>Toplam Masraf</span><b class="num">{{ fmt(masraf) }}</b>
-              <small>Katılım {{ fmt(katilimTl) }} + Konaklama {{ eur(konaklamaEur) }}<template v-if="form.eurKuru > 0"> × {{ form.eurKuru }} = {{ fmt(konaklamaTl) }}</template> + Alan (duvar/raf/masa) {{ fmt(alanTl) }}</small>
+              <small>Konaklama {{ eur(konaklamaEur) }}<template v-if="form.eurKuru > 0"> × {{ form.eurKuru }} = {{ fmt(konaklamaTl) }}</template></small>
+              <small>+ Duvar {{ form.duvarMt || 0 }} mt × {{ fmt(gider.duvar) }} = {{ fmt(duvarTl) }}</small>
+              <small>+ Masa {{ form.masaSayisi || 0 }} adet × {{ fmt(gider.masa) }} = {{ fmt(masaTl) }}</small>
+              <small>+ Raf {{ form.rafMt || 0 }} mt × {{ fmt(gider.raf) }} = {{ fmt(rafTl) }}</small>
+              <small>− Kredi kartı katılım {{ fmt(form.krediKarti) }} − Fatura katılım {{ fmt(form.faturaKatilim) }} − Katılım primi {{ fmt(primTutar) }} (gerçekleşen ciro × %{{ form.katilimPrim.sabit || 0 }})</small>
               <small v-if="konaklamaEur > 0 && !(form.eurKuru > 0)">Konaklama toplama girmesi için EUR kuru girin.</small>
             </div>
             <div class="r"><span>EUR Kuru</span>
@@ -467,17 +478,17 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <div class="sec">1 · Oda Fiyatları <small style="text-transform:none;letter-spacing:0">(gecelik, €)</small></div>
           <div class="g2">
             <div v-for="(_, t) in gider.oda" :key="t" class="field"><label>{{ t }}</label>
-              <div class="suffix"><input v-model.number="gider.oda[t]" class="inp" type="number" step="0.01"><span>€</span></div></div>
+              <div class="suffix"><MoneyInput v-model="gider.oda[t]" class="inp" /><span>€</span></div></div>
           </div>
           <div class="sec">2 · Duvar</div>
           <div class="g2"><div class="field"><label>Duvar Metretül Fiyatı</label>
-            <div class="suffix"><input v-model.number="gider.duvar" class="inp" type="number" step="0.01"><span>₺</span></div></div></div>
+            <div class="suffix"><MoneyInput v-model="gider.duvar" class="inp" /><span>₺</span></div></div></div>
           <div class="sec">3 · Raf</div>
           <div class="g2"><div class="field"><label>Raf Metretül Fiyatı</label>
-            <div class="suffix"><input v-model.number="gider.raf" class="inp" type="number" step="0.01"><span>₺</span></div></div></div>
+            <div class="suffix"><MoneyInput v-model="gider.raf" class="inp" /><span>₺</span></div></div></div>
           <div class="sec">4 · Masa</div>
           <div class="g2"><div class="field"><label>Masa Fiyatı</label>
-            <div class="suffix"><input v-model.number="gider.masa" class="inp" type="number" step="0.01"><span>₺</span></div></div></div>
+            <div class="suffix"><MoneyInput v-model="gider.masa" class="inp" /><span>₺</span></div></div></div>
         </div>
         <footer><button class="btn btn-dark" @click="giderOpen = false">Tamam</button></footer>
       </div>

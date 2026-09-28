@@ -151,6 +151,9 @@ tr:hover td { filter: brightness(.985); }
 .seg button + button { border-left: 1px solid var(--border-strong); }
 .seg button.on { background: #1f2328; color: #fff; }
 .seg button:disabled { cursor: not-allowed; opacity: .6; }
+.sevk { display: grid; grid-template-columns: 80px 1fr 1.2fr 1.3fr 24px; gap: 6px; margin-bottom: 6px; }
+.sevk .inp { width: 100%; min-width: 0; padding: 0 6px; }
+.sevk-h { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
 .drange { position: relative; }
 .drange > .inp { width: 100%; cursor: pointer; }
 .drange-pop { position: absolute; top: 36px; left: 0; right: 0; z-index: 30; background: #fff; border: 1px solid var(--border-strong); border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.12); padding: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

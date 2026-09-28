@@ -2,13 +2,13 @@
 
 Bu doküman, `tedarikci-fuar-davet` prototipindeki ekranın nasıl çalışması gerektiğini yazılımcıya anlatmak için hazırlanmıştır. Prototip Nuxt 4 ile yapılmıştır, **backend yoktur**: tüm veri tarayıcıda örnek olarak tutulur ve sayfa yenilenince sıfırlanır. Gerçek sistemde bu davranışların sunucu tarafında (ERP/veritabanı) karşılanması gerekir.
 
-Kaynak kod: `app/pages/index.vue` (ekran ve tüm mantık), `app/components/DateRange.vue` (tarih aralığı kutusu).
+Kaynak kod: `app/pages/index.vue` (ekran ve tüm mantık), `app/components/DateRange.vue` (tarih aralığı kutusu), `app/components/MoneyInput.vue` (tutar kutusu).
 
 ---
 
 ## 1. Amaç
 
-Müşteri fuar davet ekranının **tedarikçiler için** olan karşılığıdır. Fuara davet edilecek tedarikçiler seçilir, fuar koşulları (vade, iskonto, prim, konaklama, alan, masraf) girilir ve kayıt **yönetim onayına** gönderilir. Onay sonucunda tedarikçi fuara davet edilmiş sayılır.
+Müşteri fuar davet ekranının **tedarikçiler için** olan karşılığıdır. Fuara davet edilecek tedarikçiler seçilir, fuar koşulları (vade, iskonto, sevkiyat, prim, konaklama, alan, masraf) girilir ve kayıt **yönetim onayına** gönderilir. Onay sonucunda tedarikçi fuara davet edilmiş sayılır.
 
 Müşteri ekranından farkı: finans/cari onay adımları yoktur; yalnızca yönetim onayı vardır.
 
@@ -61,7 +61,7 @@ Bir kaydın 5 durumu vardır:
 - Karta tıklanınca liste o aşamaya göre filtrelenir; tekrar tıklanınca filtre kalkar.
 
 ### 3.3 Filtre paneli
-- **Proje / Fuar:** açılır liste.
+- **Proje / Fuar:** açılır liste. (Fuar yılı ve fuar no alanları kullanılmaz.)
 - **Tedarikçi:** aranabilir seçim kutusu. Ad ya da cari koda göre arar (Türkçe karakter duyarlı), en fazla 50 sonuç gösterir, **daha önce aday eklenmiş tedarikçileri listede göstermez**.
 - **Aday Ekle:** seçilen tedarikçiyi `aday` durumunda listeye ekler ve kayıt panelini açar.
 - **Durum** filtresi ve **Ara** kutusu (tedarikçi adı, cari kod, sorumlu).
@@ -81,43 +81,68 @@ Satırların başındaki kutularla seçim yapılır. Butonlar, **seçili tüm sa
 ### 3.5 Liste kolonları
 Tedarikçi (ad + cari kod), Durum, Sorumlu, Bakiye, Vade, Alış İskontosu (örn. `%10 + %3`), Satış İskontosu, Hedef Satış Cirosu, Son Fuar. Satır rengi duruma göre değişir (sarı: yönetim onayında, mor: üst yönetim, yeşil: onaylı, kırmızı: reddedilmiş). Satırda ✎ (kayıt paneli) ve yalnızca adaylarda 🗑 (sil) butonu vardır.
 
+**Sorumlu** kolonu cari kartındaki sorumlu kişidir; prototipte tüm kayıtlarda "Eyüp Ömer Yılmaz" yazılıdır. Bakiye ve Son Fuar ERP'den gelen bilgidir, kayıt panelinde düzenlenmez.
+
 ---
 
 ## 4. Kayıt Paneli (sağdan açılan form)
 
-Sıra ve alanlar:
+Bölümler ve alanlar (ekrandaki sırayla):
 
-1. **Vade**
-   - Seçim: *Gün* ya da *Nokta tarih* (ikisinden biri). Gün ise sayı, nokta tarih ise tarih girilir.
-   - **Vade Açıklaması:** kısa metin, en fazla 120 karakter.
-2. **Fuar Alış İskontoları**
-   - **İskonto Grubu:** A0 / A1 / A2 listesi.
-   - **İskonto 1–4:** dört ayrı yüzde kutusu.
-   - **Nakliye:** Hariç / Dahil (liste). **Nakliye Şekli:** Yerinden / Timon Depo (liste). Yan yana durur, birbirinden bağımsızdır.
-3. **Satış İskontosu ve Hedef**
-   - Fuar Satış İskontosu (%), Hedef Satış Cirosu (₺).
-4. **Primler**
-   - **Personel Primi, Ciro Primi, Pazarlama Primi:** her biri için *Baremli* kutusu vardır.
-     - Baremli değilse: tek prim oranı (%).
-     - Baremliyse: satırlar halinde *alt sınır (₺) – üst sınır (₺) – prim (%)*; "+ Barem Ekle" ile satır eklenir, ✕ ile silinir. Yeni satırın alt sınırı önceki satırın üst sınırıyla otomatik dolar. En az 1 satır kalır.
-   - **Ciro Hedefine Göre Altın Ödülü:** satırlar halinde *ciro (₺) – adet – altın türü* (Gram / Çeyrek / Yarım / Tam Altın). Örn. "X ₺ ciroya 10 gram altın".
-5. **Sipariş Sorumlusu:** ad soyad, e-posta, telefon.
-6. **Konaklama**
-   - "+ Oda Ekle" / "+ Bir Oda Daha Ekle" ile oda eklenir; her oda için:
-     - **Oda tipi** (SNG, DBL, DBL+1, TRPL, TRPL+1, FAM; listede fiyatı yazar),
-     - **Giriş – Çıkış tarihi** (tek kutuda; tıklayınca iki tarih seçici açılır; giriş çıkıştan sonra olamaz),
-     - **Kişiler:** "+ Kişi Ekle" ile istenen sayıda; her kişi için *ad soyad, TC kimlik no (11 hane), doğum tarihi*. Odada en az 1 kişi kalır.
-   - Oda başına bilgi satırı: `DBL · €324 × 4 gece = €1.296`.
-7. **Alan Bilgileri:** Duvar (mt), Masa sayısı (adet), Raf (mt).
-8. **Diğer**
-   - Fuar Kredi Kartı Katılım Bedeli (₺), Fuar Fatura Katılım Bedeli (₺).
-   - **Gerçekleşen Ciro:** **salt okunur, otomatik gelir, manuel giriş yoktur.** Gerçek sistemde ERP'deki tedarikçinin fuar dönemi cirosundan beslenmelidir.
-   - Cirodan Fuar Katılım Primi (%).
-   - Açıklama (serbest metin).
-9. **Masraf kutusu** (bkz. 5).
-10. **Onay Geçmişi** (en yeni üstte).
+### 1 · Vade
+- **Fuar Alış Vadesi:** *Gün* ya da *Nokta tarih* (ikisinden biri). Gün ise sayı, nokta tarih ise tarih girilir.
+- **Vade Açıklaması:** kısa serbest metin, en fazla 120 karakter.
+
+### 2 · Fuar Alış İskontoları ve Sevkiyat
+- **İskonto 1–4:** dört ayrı yüzde kutusu.
+- **Sevkiyat Baremleri:** satırlar halinde; her satırda
+  - **Birim:** `Baremsiz`, `Koli` ya da `Palet`.
+  - **Alt sınır:** birim Koli ya da Palet ise koli adedi / palet sayısı olarak girilir. **Üst sınır yoktur**, yalnızca alt sınır tutulur.
+  - **Baremsiz** seçilirse alt sınır kutusu yerine tek bir **tutar (₺)** kutusu açılır.
+  - **Teslim yeri:** `Timon Depo` ya da `Yerinden`.
+  - **Nakliye:** `Nakliye Hariç` ya da `Nakliye Dahil`.
+  - Teslim yeri ve nakliye her satırda ayrı seçilir; palet ise Timon depo, koli ise yerinden gibi eşleşmeler sabit değildir, **kullanıcı satır satır seçer**.
+  - "+ Sevkiyat Baremi Ekle" ile satır eklenir, ✕ ile silinir. En az 1 satır kalır. Yeni satır varsayılan olarak boş (0) gelir.
+
+### 3 · Satış İskontosu ve Hedef
+- **Fuar Satış İskontosu (%)**, **İskonto Grubu** (A0 / A1 / A2 listesi), **Hedef Satış Cirosu (₺)**.
+
+### 4 · Primler
+- **Personel Primi** ve **Ciro Primi:** her biri için *Baremli* kutusu vardır.
+  - Baremli değilse: tek prim oranı (%).
+  - Baremliyse: satırlar halinde *alt sınır (₺) – üst sınır (₺) – prim (%)*; "+ Barem Ekle" ile satır eklenir, ✕ ile silinir. Yeni satırın alt sınırı önceki satırın üst sınırıyla otomatik dolar. En az 1 satır kalır.
+- **Ciro Hedefine Göre Altın Ödülü:** satırlar halinde *ciro (₺) – adet – altın türü* (Gram / Çeyrek / Yarım / Tam Altın). Örn. "X ₺ ciroya 10 gram altın".
+- Pazarlama primi alanı **kaldırılmıştır**.
+
+### 5 · Tedarikçi Sipariş Sorumlusu
+- Ad soyad, e-posta, telefon.
+
+### 6 · Konaklama
+- "+ Oda Ekle" / "+ Bir Oda Daha Ekle" ile oda eklenir; her oda için:
+  - **Oda tipi** (SNG, DBL, DBL+1, TRPL, TRPL+1, FAM; listede fiyatı yazar),
+  - **Giriş – Çıkış tarihi** (tek kutuda; tıklayınca iki tarih seçici açılır; giriş çıkıştan sonra olamaz),
+  - **Kişiler:** "+ Kişi Ekle" ile istenen sayıda; her kişi için *ad soyad, TC kimlik no (11 hane), doğum tarihi*. Odada en az 1 kişi kalır.
+- Oda başına bilgi satırı: `DBL · €324 × 4 gece = €1.296`.
+
+### 7 · Alan Bilgileri
+- Duvar (mt), Masa sayısı (adet), Raf (mt).
+
+### Diğer
+- **Fuar Kredi Kartı Katılım Bedeli (₺)** ve **Fuar Fatura Katılım Bedeli (₺)**.
+- **Gerçekleşen Ciro:** **salt okunur, otomatik gelir, manuel giriş yoktur.** Gerçek sistemde ERP'deki tedarikçinin fuar dönemi cirosundan beslenmelidir.
+- **Cirodan Fuar Katılım Primi (%):** tek oran. Gerçekleşen ciro ile çarpılıp masraftan düşülür (bkz. 5).
+- **Açıklama:** serbest metin.
+
+### Masraf kutusu
+Panelin altında, Onay Geçmişi'nin üstünde. Toplam masrafı ve hesabın dökümünü gösterir (bkz. 5). **EUR Kuru** burada salt okunur görünür (sabit 50 ₺).
+
+### Onay Geçmişi
+En yeni işlem üstte.
 
 Alt butonlar: **Kapat**, **Kaydet**, **Kaydet ve Yönetim Onayına Gönder** (kaydeder ve durumu `gm` yapar). Aday dışında yalnızca *Kapat* görünür.
+
+### Tutar kutularının davranışı
+Tüm ₺ / € tutar kutuları (hedef satış cirosu, katılım bedelleri, barem alt/üst sınırları, altın ödülündeki ciro, baremsiz sevkiyat tutarı, masraf tablosundaki fiyatlar) **otomatik ondalıklı biçimlenir**. Rakamlar sağdan dolar: `1` → `0,01`, `12` → `0,12`, `125075` → `1.250,75`. Nokta/virgül yazmaya gerek yoktur; eksi tutar girilemez. Adet, gün, mt, iskonto % ve prim % gibi alanlar düz sayı olarak kalır.
 
 ---
 
@@ -126,19 +151,34 @@ Alt butonlar: **Kapat**, **Kaydet**, **Kaydet ve Yönetim Onayına Gönder** (ka
 Tümü ekranda anlık hesaplanır.
 
 ```
-gece sayısı      = max(0, çıkış tarihi − giriş tarihi)      (tarih yoksa 0)
-oda tutarı (€)   = oda tipi gecelik fiyatı × gece sayısı
-konaklama (€)    = tüm odaların tutarı toplamı
-konaklama (₺)    = konaklama (€) × EUR kuru                  (kur sabit 50)
-alan masrafı (₺) = duvar mt × duvar mt fiyatı
-                 + raf mt   × raf mt fiyatı
-                 + masa adedi × masa fiyatı
-katılım (₺)      = kredi kartı katılım bedeli + fatura katılım bedeli
+gece sayısı        = max(0, çıkış tarihi − giriş tarihi)         (tarih yoksa 0)
+oda tutarı (€)     = oda tipi gecelik fiyatı × gece sayısı
+konaklama (€)      = tüm odaların tutarı toplamı
+konaklama (₺)      = konaklama (€) × EUR kuru                    (kur sabit 50)
 
-TOPLAM MASRAF (₺) = katılım + konaklama (₺) + alan masrafı
+duvar (₺)          = duvar mt × duvar metretül fiyatı
+raf (₺)            = raf mt   × raf metretül fiyatı
+masa (₺)           = masa adedi × masa fiyatı
+                     (üç kalem birbirinden bağımsız hesaplanır ve ayrı gösterilir)
+
+katılım primi (₺)  = gerçekleşen ciro × cirodan fuar katılım primi %
+katılım bedelleri  = kredi kartı katılım bedeli + fatura katılım bedeli
+
+TOPLAM MASRAF (₺)  = konaklama (₺) + duvar + raf + masa
+                     − kredi kartı katılım bedeli
+                     − fatura katılım bedeli
+                     − katılım primi (₺)
 ```
 
-Masraf kutusu rengi: toplam masraf veya konaklama tutarı > 0 ise **yeşil**, hiç veri yoksa **gri**. (Hedef cirosuna oran gösterilmez; tedarikçi için gerek yok denildi.)
+Kredi kartı ve fatura katılım bedelleri masrafa **eklenmez, masraftan düşülür** (tedarikçiden alınan katkı olarak ele alınır). Bu yüzden toplam masraf **eksi** çıkabilir; bu, masrafın karşılandığı anlamına gelir.
+
+Masraf kutusu rengi:
+
+| Durum | Renk |
+|---|---|
+| Toplam masraf 0 ya da eksi (karşılanmış) | yeşil |
+| Toplam masraf artıda (karşılanmamış) | turuncu |
+| Hiç veri girilmemiş | gri |
 
 ---
 
@@ -166,16 +206,16 @@ Gerçek sistemde bu tablo bir **parametre tablosu** olarak saklanmalı, yetkili 
 | id, fuarId, cariKod | | Bir tedarikçi bir fuara **yalnızca bir kez** eklenebilir |
 | durum | enum | `aday, gm, ust, ok, red` |
 | redEden | metin | "Yönetim" vb. (kim reddetti) |
-| sorumlu | metin | Cari kartından gelir (prototipte hepsi Eyüp Ömer Yılmaz) |
+| sorumlu | metin | Cari kartından gelir |
 | bakiye, sonFuarTutari | ondalık | ERP'den gelir, düzenlenmez |
 | gerceklesenCiro | ondalık | ERP'den **otomatik**, düzenlenmez |
 | vadeTip, vadeGun, vadeTarih, vadeAciklama | | Tip `gun` ya da `tarih` |
-| iskontoGrubu | metin | A0 / A1 / A2 |
 | alisIskonto1..4 | ondalık % | |
+| sevkiyat[] | liste | `{birim, altSinir, tutar, teslimYeri, nakliye}` (aşağıya bakın) |
 | satisIskonto | ondalık % | |
-| nakliye, nakliyeSekli | enum | `dahil/haric`, `yerinden/timon` |
+| iskontoGrubu | metin | A0 / A1 / A2 |
 | hedefSatisCirosu | ondalık | |
-| personelPrim, ciroPrim, pazarlamaPrim | nesne | `{baremli, sabitOran, baremler[]}` |
+| personelPrim, ciroPrim | nesne | `{baremli, sabitOran, baremler[]}` |
 | katilimPrimOrani | ondalık % | Cirodan fuar katılım primi |
 | altinOdulleri[] | liste | `{ciro, adet, tur}` |
 | siparisSorumlusu | nesne | `{adSoyad, mail, telefon}` |
@@ -185,7 +225,9 @@ Gerçek sistemde bu tablo bir **parametre tablosu** olarak saklanmalı, yetkili 
 | krediKartiKatilimBedeli, faturaKatilimBedeli | ondalık ₺ | |
 | aciklama | metin | |
 
-**Barem satırı:** `{altSinir, ustSinir, primOrani}`
+**Sevkiyat satırı:** `birim` (`baremsiz` / `koli` / `palet`), `altSinir` (koli/palet için), `tutar` (yalnızca baremsizde, ₺), `teslimYeri` (`timon` / `yerinden`), `nakliye` (`haric` / `dahil`).
+
+**Prim barem satırı:** `{altSinir, ustSinir, primOrani}`
 
 **Onay geçmişi (`FuarDavetLog`):** kayıtId, tarih-saat, kullanıcı, eylem/açıklama.
 
@@ -199,18 +241,19 @@ Prototipte **varsayım** olarak yapılanlar veya henüz karara bağlanmamış ko
 
 1. **Roller ve yetki:** Kim aday ekler/gönderir, kim Genel Müdür, kim Üst Yönetim? Butonlar role göre açılmalı; Genel Müdür yalnızca `gm` durumundakileri, üst yönetim `ust` durumundakileri işlemeli. Geri çekme ve sıfırlama yetkisi kimde?
 2. **Zorunlu alanlar:** Onaya göndermeden önce hangi alanlar zorunlu (örn. vade, iskonto, hedef ciro, sipariş sorumlusu)? Prototipte hiçbiri zorunlu değil.
-3. **Oda fiyatı birimi:** Oda fiyatları **gecelik** kabul edildi. Konaklama süresi boyunca sabit tutarsa gece çarpanı kaldırılmalı.
-4. **Duvar / raf / masa fiyatı para birimi:** ₺ kabul edildi, tutarlar henüz girilmedi.
-5. **EUR kuru:** Şimdilik **sabit 50 ₺**, değiştirilemez. Gerçekte günlük/dönemsel kur mu kullanılacak?
-6. **Altın ödülü:** Ödül tutarı ekranda hesaplanmaz, yalnızca koşul olarak saklanır. Gram altın için gram miktarı mı (adet = gram), yoksa başka bir tanım mı olacak?
-7. **Prim hesabı:** Barem sınırlarının nasıl uygulanacağı (dilimli/kademeli mi, ulaşılan baremin oranı tüm ciroya mı uygulanır) ve `gerçekleşen ciro` üzerinden primin ne zaman ve nasıl hesaplanacağı bu ekranın kapsamında değil; ayrıca tanımlanmalı. Barem satırlarında çakışma/boşluk kontrolü de yok.
-8. **Doğrulamalar:** TC kimlik numarası doğrulaması (11 hane + algoritma), e-posta ve telefon formatı, tarih mantığı (giriş < çıkış — şu an tarih seçicide kısıtlı).
-9. **Red gerekçesi:** Reddederken gerekçe alanı yok; eklenmesi önerilir.
-10. **Bildirim:** Onaya gönderilince / karar verilince ilgili kişiye e-posta ya da uygulama bildirimi gidecek mi?
-11. **Excel'e Aktar / Excel'den Karar Aktar:** Prototipte yalnızca mesaj gösterir. Gerçek işlev (dosya formatı, hangi kolonlar, toplu karar nasıl işlenecek) tanımlanmalı.
-12. **Masraf toplamına giren kalemler:** Şu an kredi kartı + fatura katılım bedeli + konaklama + alan (duvar/raf/masa). Nakliye bedeli ve primler toplama **girmez**; girmesi gerekiyorsa belirtilmeli.
-13. **Fuar Masraf Tablosu kapsamı:** Tüm fuarlar için tek tablo mu, fuar bazında mı? Değişiklik yapılınca daha önce onaylanmış kayıtların tutarı değişmemeli (fiyatın kayıt anında dondurulması önerilir).
-14. **Cari verileri:** Bakiye, sorumlu ve son fuar tutarı ERP'den (Timon) okunmalı; kayıt paneli bunları değiştirmez.
+3. **Sevkiyat baremi:** Koli/palet alt sınırının anlamı (adet mi, bu adetten itibaren geçerli mi) ve barem neye göre işleyecek (koli adedi, palet sayısı, sipariş tutarı, ağırlık)? Baremsiz satırdaki **tutar** neyi ifade ediyor (sabit nakliye bedeli mi, sipariş başına mı)? Üst sınır olmadığı için satırların çakışma/sıralama kuralı da tanımlanmalı.
+4. **Oda fiyatı birimi:** Oda fiyatları **gecelik** kabul edildi. Konaklama süresi boyunca sabit tutarsa gece çarpanı kaldırılmalı.
+5. **Duvar / raf / masa fiyatı para birimi:** ₺ kabul edildi, tutarlar henüz girilmedi.
+6. **EUR kuru:** Şimdilik **sabit 50 ₺**, değiştirilemez. Gerçekte günlük/dönemsel kur mu kullanılacak?
+7. **Altın ödülü:** Ödül tutarı ekranda hesaplanmaz, yalnızca koşul olarak saklanır. Gram altın için gram miktarı mı (adet = gram), yoksa başka bir tanım mı olacak?
+8. **Prim hesabı:** Personel ve ciro primi baremlerinin nasıl uygulanacağı (dilimli/kademeli mi, ulaşılan baremin oranı tüm ciroya mı uygulanır) bu ekranın kapsamında değil; ayrıca tanımlanmalı. Barem satırlarında çakışma/boşluk kontrolü de yok. Cirodan fuar katılım primi ise tek oran olup gerçekleşen ciro ile çarpılır.
+9. **Doğrulamalar:** TC kimlik numarası doğrulaması (11 hane + algoritma), e-posta ve telefon formatı, tarih mantığı (giriş < çıkış — şu an tarih seçicide kısıtlı).
+10. **Red gerekçesi:** Reddederken gerekçe alanı yok; eklenmesi önerilir.
+11. **Bildirim:** Onaya gönderilince / karar verilince ilgili kişiye e-posta ya da uygulama bildirimi gidecek mi?
+12. **Excel'e Aktar / Excel'den Karar Aktar:** Prototipte yalnızca mesaj gösterir. Gerçek işlev (dosya formatı, hangi kolonlar, toplu karar nasıl işlenecek) tanımlanmalı.
+13. **Masraf formülü:** Kredi kartı ve fatura katılım bedelleri ile katılım primi masraftan düşülüyor; toplam eksi çıkabilir. Bu mantığın doğrulanması, nakliye bedelinin ve diğer primlerin toplama girip girmeyeceğinin netleştirilmesi gerekir.
+14. **Fuar Masraf Tablosu kapsamı:** Tüm fuarlar için tek tablo mu, fuar bazında mı? Değişiklik yapılınca daha önce onaylanmış kayıtların tutarı değişmemeli (fiyatın kayıt anında dondurulması önerilir).
+15. **Cari verileri:** Bakiye, sorumlu ve son fuar tutarı ERP'den (Timon) okunmalı; kayıt paneli bunları değiştirmez.
 
 ---
 
