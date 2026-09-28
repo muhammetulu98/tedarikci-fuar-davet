@@ -39,28 +39,28 @@ const bos = (): Detay => ({
 interface Row extends Detay {
   gerceklesen: number
   id: number; ad: string; kod: string; yetkili: string
-  bakiye: number; ciro: number; sonFuar: number
+  ciro: number; markalar: string[]; altKategoriler: string[]
   status: Status; redEvren?: string
   log: { t: string; txt: string }[]
 }
 
 const fuarlar = ['Ekim 2026 Fuar (F2026-10)', 'Mart 2027 Fuar (F2027-03)']
 const tedarikciler = [
-  { ad: 'SUN PLASTİK EV GEREÇLERİ SAN. VE TİC. L…', kod: '320.34.0166', yetkili: 'Eyüp Ömer Yılmaz', bakiye: -412000, ciro: 8420000, sonFuar: 2150000 },
-  { ad: 'EMRE GIDA PAZ. SAN. VE DIŞ TİC. LTD. ŞTİ', kod: '320.34.0096', yetkili: 'Eyüp Ömer Yılmaz', bakiye: -96500, ciro: 5310000, sonFuar: 1480000 },
-  { ad: 'PROVEL TÜKETİM ÜRÜNLERİ SAN. TİC. A.Ş.', kod: '320.34.00816', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 18400, ciro: 2210000, sonFuar: 0 },
-  { ad: 'KOÇYİĞİTLER GRUP İNŞ. VE SU ARM. SAN. V…', kod: '320.34.01195', yetkili: 'Eyüp Ömer Yılmaz', bakiye: -58200, ciro: 3980000, sonFuar: 910000 },
-  { ad: 'SARINA CAM PAZARLAMA TİC. VE SAN. LTD.…', kod: '320.00.001479', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 4760000, sonFuar: 1200000 },
-  { ad: 'MENBA DIŞ TİC. VE SAN. LTD. ŞTİ.', kod: '320.00.001398', yetkili: 'Eyüp Ömer Yılmaz', bakiye: -220700, ciro: 6120000, sonFuar: 1750000 },
-  { ad: 'QLUX IDEAS MUTFAK EŞYA. SAN. VE TİC. A…', kod: '320.00.001336', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 7300, ciro: 940000, sonFuar: 0 },
-  { ad: 'SİGMA CAM EŞYA PAZ. TİC. LTD. ŞTİ.', kod: '320.34.08872', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'AKAY PLASTİK VE SAN. TİC. LTD. ŞTİ.', kod: '320.34.08960', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'ORCAMP E-TİCARET LTD. ŞTİ.', kod: '320.00.001352', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'MENZİR MADENİ EŞYA PLASTİK TEKS. GIDA …', kod: '320.00.001669', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'BURSEV PLASTİK VE DIŞ TİC. A.Ş', kod: '320.00.000101', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'ÖZÇELİK AYNA CAM SAN. TİC.LTD.ŞTİ.', kod: '320.00.001666', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'DURUL TEKSTİL KONFEKSİYON İNŞ.GIDA EL…', kod: '320.00.001610', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
-  { ad: 'ÜÇEF ENDÜSTRİYEL MUTFAK SAN. İTH. VE İ…', kod: '320.00.001371', yetkili: 'Eyüp Ömer Yılmaz', bakiye: 0, ciro: 0, sonFuar: 0 },
+  { ad: 'SUN PLASTİK EV GEREÇLERİ SAN. VE TİC. L…', kod: '320.34.0166', yetkili: 'Eyüp Ömer Yılmaz', ciro: 8420000, markalar: ['Sun Plastik', 'Sunplast'], altKategoriler: ['Saklama Kabı', 'Çöp Kovası', 'Plastik Mutfak'] },
+  { ad: 'EMRE GIDA PAZ. SAN. VE DIŞ TİC. LTD. ŞTİ', kod: '320.34.0096', yetkili: 'Eyüp Ömer Yılmaz', ciro: 5310000, markalar: ['Emre Gıda'], altKategoriler: ['Kuru Gıda', 'Baharat'] },
+  { ad: 'PROVEL TÜKETİM ÜRÜNLERİ SAN. TİC. A.Ş.', kod: '320.34.00816', yetkili: 'Eyüp Ömer Yılmaz', ciro: 2210000, markalar: ['Provel', 'Provel Home'], altKategoriler: ['Temizlik', 'Kişisel Bakım'] },
+  { ad: 'KOÇYİĞİTLER GRUP İNŞ. VE SU ARM. SAN. V…', kod: '320.34.01195', yetkili: 'Eyüp Ömer Yılmaz', ciro: 3980000, markalar: ['Koçyiğit'], altKategoriler: ['Su Armatürü', 'Banyo Aksesuarı'] },
+  { ad: 'SARINA CAM PAZARLAMA TİC. VE SAN. LTD.…', kod: '320.00.001479', yetkili: 'Eyüp Ömer Yılmaz', ciro: 4760000, markalar: ['Sarina'], altKategoriler: ['Cam Bardak', 'Cam Tabak', 'Kavanoz'] },
+  { ad: 'MENBA DIŞ TİC. VE SAN. LTD. ŞTİ.', kod: '320.00.001398', yetkili: 'Eyüp Ömer Yılmaz', ciro: 6120000, markalar: ['Menba'], altKategoriler: ['Mutfak Gereçleri'] },
+  { ad: 'QLUX IDEAS MUTFAK EŞYA. SAN. VE TİC. A…', kod: '320.00.001336', yetkili: 'Eyüp Ömer Yılmaz', ciro: 940000, markalar: ['Qlux', 'Ideas'], altKategoriler: ['Mutfak Eşyası', 'Termos'] },
+  { ad: 'SİGMA CAM EŞYA PAZ. TİC. LTD. ŞTİ.', kod: '320.34.08872', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Sigma'], altKategoriler: ['Cam Eşya', 'Sürahi'] },
+  { ad: 'AKAY PLASTİK VE SAN. TİC. LTD. ŞTİ.', kod: '320.34.08960', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Akay'], altKategoriler: ['Plastik Kova', 'Sepet'] },
+  { ad: 'ORCAMP E-TİCARET LTD. ŞTİ.', kod: '320.00.001352', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Orcamp'], altKategoriler: ['Kamp Malzemesi'] },
+  { ad: 'MENZİR MADENİ EŞYA PLASTİK TEKS. GIDA …', kod: '320.00.001669', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Menzir'], altKategoriler: ['Çatal Kaşık', 'Tencere', 'Plastik Mutfak'] },
+  { ad: 'BURSEV PLASTİK VE DIŞ TİC. A.Ş', kod: '320.00.000101', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Bursev'], altKategoriler: ['Plastik Ev Gereçleri'] },
+  { ad: 'ÖZÇELİK AYNA CAM SAN. TİC.LTD.ŞTİ.', kod: '320.00.001666', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Özçelik'], altKategoriler: ['Ayna', 'Cam Bardak'] },
+  { ad: 'DURUL TEKSTİL KONFEKSİYON İNŞ.GIDA EL…', kod: '320.00.001610', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Durul'], altKategoriler: ['Ev Tekstili', 'Mutfak Tekstili'] },
+  { ad: 'ÜÇEF ENDÜSTRİYEL MUTFAK SAN. İTH. VE İ…', kod: '320.00.001371', yetkili: 'Eyüp Ömer Yılmaz', ciro: 0, markalar: ['Üçef'], altKategoriler: ['Endüstriyel Mutfak', 'Tencere'] },
 ]
 
 const now = () => new Date().toLocaleString('tr-TR', { dateStyle: 'short', timeStyle: 'short' })
@@ -103,7 +103,7 @@ const visible = computed(() =>
     }
     if (durum.value && r.status !== durum.value) return false
     const q = ara.value.trim().toLocaleLowerCase('tr')
-    if (q && !`${r.ad} ${r.kod} ${r.yetkili}`.toLocaleLowerCase('tr').includes(q)) return false
+    if (q && !`${r.ad} ${r.kod} ${r.yetkili} ${r.markalar.join(' ')} ${r.altKategoriler.join(' ')}`.toLocaleLowerCase('tr').includes(q)) return false
     return true
   }),
 )
@@ -169,7 +169,7 @@ function adayUret() {
 }
 function openEdit(r: Row) {
   edit.value = r
-  const { id, ad, kod, yetkili, bakiye, ciro, sonFuar, gerceklesen, status, log, redEvren, ...d } = r
+  const { id, ad, kod, yetkili, ciro, markalar, altKategoriler, gerceklesen, status, log, redEvren, ...d } = r
   Object.assign(form, klon(d))
 }
 function kaydet(gonder = false) {
@@ -260,7 +260,7 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
             <option value="">Tüm durumlar</option>
             <option v-for="(m, k) in statusMeta" :key="k" :value="k">{{ m.label }}</option>
           </select></div>
-        <div class="field"><label>Ara</label><input v-model="ara" class="inp w-lg" placeholder="Tedarikçi, cari kodu, sorumlu…"></div>
+        <div class="field"><label>Ara</label><input v-model="ara" class="inp w-lg" placeholder="Tedarikçi, cari kodu, marka, kategori…"></div>
       </div>
     </div>
 
@@ -283,14 +283,14 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <tr>
             <th style="width:32px" />
             <th>Tedarikçi</th>
+            <th>Markalar</th>
+            <th>Alt Kategoriler</th>
             <th>Durum</th>
             <th>Sorumlu</th>
-            <th class="r">Bakiye</th>
             <th class="r">Vade</th>
             <th class="r">Alış İsk.</th>
             <th class="r">Satış İsk.</th>
             <th class="r">Hedef Satış Cirosu</th>
-            <th class="r">Son Fuar</th>
             <th style="width:64px" />
           </tr>
         </thead>
@@ -298,20 +298,20 @@ const vadeTxt = (r: Detay) => r.vadeTip === 'gun' ? `${r.vadeGun} gün` : (r.vad
           <tr v-for="r in visible" :key="r.id" :class="statusMeta[r.status].row">
             <td><input v-model="selected" type="checkbox" :value="r.id"></td>
             <td><span class="name">{{ r.ad }}</span><span class="sub">{{ r.kod }}</span></td>
+            <td><div class="chips"><span v-for="m in r.markalar" :key="m" class="chip">{{ m }}</span><span v-if="!r.markalar.length">—</span></div></td>
+            <td><div class="chips"><span v-for="a in r.altKategoriler" :key="a" class="chip alt">{{ a }}</span><span v-if="!r.altKategoriler.length">—</span></div></td>
             <td><span class="badge" :class="statusMeta[r.status].cls">{{ statusMeta[r.status].label }}<template v-if="r.status === 'red' && r.redEvren"> · {{ r.redEvren }}</template></span></td>
             <td>{{ r.yetkili }}</td>
-            <td class="r num" :class="r.bakiye < 0 ? 'neg' : ''">{{ fmt(r.bakiye) }}</td>
             <td class="r num">{{ vadeTxt(r) }}</td>
             <td class="r num">{{ iskTxt(r.alisIsk) }}</td>
             <td class="r num">{{ r.satisIsk ? '%' + r.satisIsk : '—' }}</td>
             <td class="r num">{{ r.hedef ? fmt(r.hedef) : '—' }}</td>
-            <td class="r num">{{ fmt(r.sonFuar) }}</td>
             <td style="white-space:nowrap">
               <button class="iconbtn" title="Fuar bilgileri" @click="openEdit(r)">✎</button>
               <button v-if="r.status === 'aday'" class="iconbtn del" title="Adayı sil" @click="sil([r])">🗑</button>
             </td>
           </tr>
-          <tr v-if="!visible.length"><td colspan="11" class="empty">Kayıt bulunamadı. Yukarıdan tedarikçi seçip aday ekleyin.</td></tr>
+          <tr v-if="!visible.length"><td colspan="12" class="empty">Kayıt bulunamadı. Yukarıdan tedarikçi seçip aday ekleyin.</td></tr>
         </tbody>
       </table>
     </div>
